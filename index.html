@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Benix & Howen - Mobile Edition</title>
     <style>
         * {
@@ -13,53 +13,65 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             font-family: 'Courier New', monospace;
+            color: white;
+        }
+
+        #gameContainer {
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            color: white;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
+            justify-content: flex-start;
+            padding: 5px;
         }
 
         h1 {
-            margin-top: 10px;
-            font-size: 1.5em;
-            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
             letter-spacing: 2px;
+            margin: 2px 0;
+            flex-shrink: 0;
         }
 
-        .game-container {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 800px;
+        .level-info {
+            font-size: clamp(0.7rem, 3vw, 0.9rem);
+            opacity: 0.8;
+            text-align: center;
+            flex-shrink: 0;
+            margin-bottom: 5px;
         }
 
         #gameCanvas {
-            border: 3px solid #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
             background: #0f0f1e;
+            flex-shrink: 0;
             max-width: 100%;
-            max-height: 50vh;
+            width: auto;
+            height: auto;
+            max-height: 35vh;
         }
 
-        .controls-container {
+        .controls-area {
+            width: 100%;
+            flex: 1;
             display: flex;
             justify-content: space-between;
-            width: 100%;
-            padding: 10px 20px;
-            margin-top: 10px;
+            align-items: center;
+            padding: 0 10px;
+            min-height: 0;
         }
 
         .control-pad {
@@ -70,59 +82,57 @@
         }
 
         .control-label {
-            font-size: 0.8em;
+            font-size: clamp(0.7rem, 3vw, 0.9rem);
             font-weight: bold;
-            margin-bottom: 5px;
         }
 
-        .benix-label { color: #ff6b6b; }
-        .howen-label { color: #4ecdc4; }
+        .benix-label { color: #ff6b6b; text-shadow: 0 0 5px #ff6b6b; }
+        .howen-label { color: #4ecdc4; text-shadow: 0 0 5px #4ecdc4; }
 
         .d-pad {
             display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(2, 60px);
+            grid-template-columns: repeat(3, min(60px, 15vw));
+            grid-template-rows: repeat(2, min(60px, 15vw));
             gap: 5px;
         }
 
         .control-btn {
-            background: rgba(255,255,255,0.15);
-            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
             border-radius: 10px;
             color: white;
-            font-size: 24px;
+            font-size: clamp(1.2rem, 5vw, 1.5rem);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.1s;
             backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
 
         .control-btn:active, .control-btn.active {
-            background: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.5);
             transform: scale(0.95);
-            border-color: rgba(255,255,255,0.8);
+            border-color: #fff;
         }
 
         .control-btn.up { grid-column: 2; }
         .control-btn.left { grid-column: 1; grid-row: 2; }
         .control-btn.right { grid-column: 3; grid-row: 2; }
-        .control-btn.down { grid-column: 2; grid-row: 2; }
 
-        .level-info {
-            margin-top: 5px;
-            font-size: 1em;
-            opacity: 0.8;
-            text-align: center;
-        }
-
-        .instructions {
-            font-size: 0.8em;
-            opacity: 0.6;
-            margin-top: 5px;
-            text-align: center;
-            padding: 0 20px;
+        .restart-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            z-index: 100;
         }
 
         .win-message {
@@ -131,84 +141,72 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
-            border-radius: 20px;
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
             display: none;
             z-index: 1000;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            animation: popIn 0.5s ease-out;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             width: 90%;
-            max-width: 400px;
-        }
-
-        @keyframes popIn {
-            0% { transform: translate(-50%, -50%) scale(0); }
-            80% { transform: translate(-50%, -50%) scale(1.1); }
-            100% { transform: translate(-50%, -50%) scale(1); }
+            max-width: 300px;
         }
 
         .win-message h2 {
-            font-size: 1.8em;
-            margin-bottom: 15px;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
         }
 
         button {
             background: #fff;
             color: #764ba2;
             border: none;
-            padding: 12px 25px;
-            font-size: 1.1em;
-            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
             margin-top: 10px;
         }
 
-        .restart-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 15px;
-            font-size: 0.9em;
-            border-radius: 20px;
-            cursor: pointer;
+        /* Desktop adjustments */
+        @media (min-width: 768px) {
+            #gameCanvas {
+                max-height: 50vh;
+            }
+            .d-pad {
+                grid-template-columns: repeat(3, 70px);
+                grid-template-rows: repeat(2, 70px);
+            }
         }
 
-        @media (max-width: 600px) {
-            h1 { font-size: 1.2em; }
+        /* Small phones */
+        @media (max-height: 600px) {
+            h1 { font-size: 0.9rem; }
             .d-pad {
                 grid-template-columns: repeat(3, 50px);
                 grid-template-rows: repeat(2, 50px);
             }
-            .control-btn { font-size: 20px; }
-            #gameCanvas { max-height: 40vh; }
         }
     </style>
 <base target="_blank">
 </head>
 <body>
-    <h1>🔥 BENIX & HOWEN 💧</h1>
-    
-    <div class="game-container">
+    <div id="gameContainer">
         <button class="restart-btn" onclick="restartLevel()">↻ Restart</button>
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
         
+        <h1>🔥 BENIX & HOWEN 💧</h1>
         <div class="level-info">Level 1 - Reach your colored doors!</div>
-        <div class="instructions">Benix (red) avoids lava • Howen (cyan) avoids water</div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-        <div class="controls-container">
+        <div class="controls-area">
             <!-- Benix Controls (Left side) -->
             <div class="control-pad">
                 <div class="control-label benix-label">BENIX</div>
                 <div class="d-pad">
-                    <div class="control-btn up" data-player="benix" data-key="up">↑</div>
-                    <div class="control-btn left" data-player="benix" data-key="left">←</div>
-                    <div class="control-btn down" data-player="benix" data-key="down">↓</div>
-                    <div class="control-btn right" data-player="benix" data-key="right">→</div>
+                    <div class="control-btn up" data-player="benix" data-key="up">▲</div>
+                    <div class="control-btn left" data-player="benix" data-key="left">◀</div>
+                    <div class="control-btn right" data-player="benix" data-key="right">▶</div>
                 </div>
             </div>
 
@@ -216,10 +214,9 @@
             <div class="control-pad">
                 <div class="control-label howen-label">HOWEN</div>
                 <div class="d-pad">
-                    <div class="control-btn up" data-player="howen" data-key="up">↑</div>
-                    <div class="control-btn left" data-player="howen" data-key="left">←</div>
-                    <div class="control-btn down" data-player="howen" data-key="down">↓</div>
-                    <div class="control-btn right" data-player="howen" data-key="right">→</div>
+                    <div class="control-btn up" data-player="howen" data-key="up">▲</div>
+                    <div class="control-btn left" data-player="howen" data-key="left">◀</div>
+                    <div class="control-btn right" data-player="howen" data-key="right">▶</div>
                 </div>
             </div>
         </div>
@@ -235,15 +232,19 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Handle canvas sizing for mobile
+        // Handle canvas sizing
         function resizeCanvas() {
-            const container = document.querySelector('.game-container');
+            const container = document.getElementById('gameContainer');
             const maxWidth = Math.min(window.innerWidth - 20, 800);
             const scale = maxWidth / 800;
-            canvas.style.width = maxWidth + 'px';
+            canvas.style.width = (800 * scale) + 'px';
             canvas.style.height = (600 * scale) + 'px';
         }
+        
         window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 100);
+        });
         resizeCanvas();
 
         let currentLevel = 1;
@@ -268,53 +269,59 @@
         const friction = 0.8;
         const keys = {};
 
-        // Touch controls
-        document.querySelectorAll('.control-btn').forEach(btn => {
-            const player = btn.dataset.player;
-            const key = btn.dataset.key;
-            
-            const startHandler = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                btn.classList.add('active');
-                if (player === 'benix') {
-                    if (key === 'left') keys['a'] = true;
-                    if (key === 'right') keys['d'] = true;
-                    if (key === 'up') keys['w'] = true;
-                    if (key === 'down') keys['s'] = true;
-                } else {
-                    if (key === 'left') keys['arrowleft'] = true;
-                    if (key === 'right') keys['arrowright'] = true;
-                    if (key === 'up') keys['arrowup'] = true;
-                    if (key === 'down') keys['arrowdown'] = true;
-                }
-            };
-            
-            const endHandler = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                btn.classList.remove('active');
-                if (player === 'benix') {
-                    if (key === 'left') keys['a'] = false;
-                    if (key === 'right') keys['d'] = false;
-                    if (key === 'up') keys['w'] = false;
-                    if (key === 'down') keys['s'] = false;
-                } else {
-                    if (key === 'left') keys['arrowleft'] = false;
-                    if (key === 'right') keys['arrowright'] = false;
-                    if (key === 'up') keys['arrowup'] = false;
-                    if (key === 'down') keys['arrowdown'] = false;
-                }
-            };
-            
-            btn.addEventListener('touchstart', startHandler, {passive: false});
-            btn.addEventListener('touchend', endHandler, {passive: false});
-            btn.addEventListener('mousedown', startHandler);
-            btn.addEventListener('mouseup', endHandler);
-            btn.addEventListener('mouseleave', endHandler);
-        });
+        // Touch controls - Fixed for better mobile response
+        function setupControls() {
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                const player = btn.dataset.player;
+                const key = btn.dataset.key;
+                
+                const startHandler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btn.classList.add('active');
+                    
+                    if (player === 'benix') {
+                        if (key === 'left') keys['a'] = true;
+                        if (key === 'right') keys['d'] = true;
+                        if (key === 'up') keys['w'] = true;
+                    } else {
+                        if (key === 'left') keys['arrowleft'] = true;
+                        if (key === 'right') keys['arrowright'] = true;
+                        if (key === 'up') keys['arrowup'] = true;
+                    }
+                };
+                
+                const endHandler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btn.classList.remove('active');
+                    
+                    if (player === 'benix') {
+                        if (key === 'left') keys['a'] = false;
+                        if (key === 'right') keys['d'] = false;
+                        if (key === 'up') keys['w'] = false;
+                    } else {
+                        if (key === 'left') keys['arrowleft'] = false;
+                        if (key === 'right') keys['arrowright'] = false;
+                        if (key === 'up') keys['arrowup'] = false;
+                    }
+                };
+                
+                // Touch events
+                btn.addEventListener('touchstart', startHandler, {passive: false});
+                btn.addEventListener('touchend', endHandler, {passive: false});
+                btn.addEventListener('touchcancel', endHandler, {passive: false});
+                
+                // Mouse events for testing on desktop
+                btn.addEventListener('mousedown', startHandler);
+                btn.addEventListener('mouseup', endHandler);
+                btn.addEventListener('mouseleave', endHandler);
+            });
+        }
 
-        // Keyboard controls (for desktop)
+        setupControls();
+
+        // Keyboard controls
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
         });
@@ -401,24 +408,28 @@
         function restartLevel() {
             resetPlayers();
             const level = levels[currentLevel - 1];
-            level.buttons.forEach(btn => btn.pressed = false);
+            if (level.buttons) level.buttons.forEach(btn => btn.pressed = false);
         }
 
         function updatePlayer(player, otherKeys) {
+            // Horizontal movement
             if (keys[otherKeys.left]) player.vx = -player.speed;
             else if (keys[otherKeys.right]) player.vx = player.speed;
             else player.vx *= friction;
 
+            // Jumping
             if (keys[otherKeys.up] && player.onGround) {
                 player.vy = -player.jumpPower;
                 player.onGround = false;
                 createParticles(player.x + player.width/2, player.y + player.height, player.color);
             }
 
+            // Apply physics
             player.vy += gravity;
             player.x += player.vx;
             player.y += player.vy;
 
+            // Boundaries
             if (player.x < 0) player.x = 0;
             if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
             if (player.y > canvas.height) {
@@ -428,6 +439,7 @@
                 player.vy = 0;
             }
 
+            // Platform collision
             player.onGround = false;
             const level = levels[currentLevel - 1];
             
@@ -444,6 +456,7 @@
                 }
             });
 
+            // Walls
             level.walls.forEach(wall => {
                 if (!wall.active) return;
                 if (player.x < wall.x + wall.w &&
@@ -456,6 +469,7 @@
                 }
             });
 
+            // Hazards
             level.hazards.forEach(hazard => {
                 if (player.x + 10 < hazard.x + hazard.w &&
                     player.x + player.width - 10 > hazard.x &&
@@ -472,22 +486,26 @@
                 }
             });
 
-            level.buttons.forEach(btn => {
-                const wasPressed = btn.pressed;
-                btn.pressed = false;
-                [benix, howen].forEach(p => {
-                    if (p.x + p.width > btn.x && p.x < btn.x + btn.w &&
-                        p.y + p.height > btn.y && p.y < btn.y + btn.h) {
-                        if (!btn.playerOnly || btn.playerOnly === p.name) {
-                            btn.pressed = true;
+            // Buttons
+            if (level.buttons) {
+                level.buttons.forEach(btn => {
+                    const wasPressed = btn.pressed;
+                    btn.pressed = false;
+                    [benix, howen].forEach(p => {
+                        if (p.x + p.width > btn.x && p.x < btn.x + btn.w &&
+                            p.y + p.height > btn.y && p.y < btn.y + btn.h) {
+                            if (!btn.playerOnly || btn.playerOnly === p.name) {
+                                btn.pressed = true;
+                            }
                         }
+                    });
+                    if (btn.pressed && !wasPressed) {
+                        createParticles(btn.x + btn.w/2, btn.y, btn.color, 5);
                     }
                 });
-                if (btn.pressed && !wasPressed) {
-                    createParticles(btn.x + btn.w/2, btn.y, btn.color, 5);
-                }
-            });
+            }
 
+            // Walls based on buttons
             level.walls.forEach(wall => {
                 if (wall.buttonId) {
                     const btn = level.buttons.find(b => b.id === wall.buttonId);
@@ -495,6 +513,7 @@
                 }
             });
 
+            // Doors
             level.doors.forEach(door => {
                 if (door.requires) {
                     const btn = level.buttons.find(b => b.id === door.requires);
@@ -549,6 +568,7 @@
 
             const level = levels[currentLevel - 1];
 
+            // Grid
             ctx.strokeStyle = 'rgba(255,255,255,0.03)';
             ctx.lineWidth = 1;
             for (let i = 0; i < canvas.width; i += 40) {
@@ -564,6 +584,7 @@
                 ctx.stroke();
             }
 
+            // Hazards
             level.hazards.forEach(hazard => {
                 ctx.fillStyle = hazard.color;
                 ctx.globalAlpha = 0.6;
@@ -577,6 +598,7 @@
                 }
             });
 
+            // Platforms
             ctx.fillStyle = '#2d3436';
             level.platforms.forEach(plat => {
                 ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -585,6 +607,7 @@
                 ctx.fillStyle = '#2d3436';
             });
 
+            // Moving platforms
             if (level.movingPlatforms) {
                 level.movingPlatforms.forEach(plat => {
                     ctx.fillStyle = '#74b9ff';
@@ -595,6 +618,7 @@
                 });
             }
 
+            // Walls
             level.walls.forEach(wall => {
                 if (wall.active) {
                     ctx.fillStyle = '#b2bec3';
@@ -606,15 +630,19 @@
                 }
             });
 
-            level.buttons.forEach(btn => {
-                ctx.fillStyle = btn.pressed ? '#00b894' : btn.color;
-                ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.fillRect(btn.x + 5, btn.y + 5, btn.w - 10, btn.h - 10);
-            });
+            // Buttons
+            if (level.buttons) {
+                level.buttons.forEach(btn => {
+                    ctx.fillStyle = btn.pressed ? '#00b894' : btn.color;
+                    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(btn.x + 5, btn.y + 5, btn.w - 10, btn.h - 10);
+                });
+            }
 
+            // Doors
             level.doors.forEach(door => {
-                const isOpen = !door.requires || level.buttons.find(b => b.id === door.requires)?.pressed;
+                const isOpen = !door.requires || level.buttons?.find(b => b.id === door.requires)?.pressed;
                 if (isOpen) ctx.globalAlpha = 0.5;
                 ctx.fillStyle = door.color;
                 ctx.fillRect(door.x, door.y, door.w, door.h);
@@ -629,6 +657,7 @@
                 ctx.lineWidth = 1;
             });
 
+            // Particles
             particles.forEach(p => {
                 ctx.globalAlpha = p.life / 30;
                 ctx.fillStyle = p.color;
@@ -638,6 +667,7 @@
             });
             ctx.globalAlpha = 1;
 
+            // Players
             [benix, howen].forEach(player => {
                 const gradient = ctx.createRadialGradient(
                     player.x + player.width/2, player.y + player.height/2, 0,
@@ -664,6 +694,7 @@
                 ctx.strokeRect(player.x, player.y, player.width, player.height);
             });
 
+            // Win check
             if (benix.reached && howen.reached) {
                 document.getElementById('winMessage').style.display = 'block';
             }
@@ -683,10 +714,13 @@
             if (currentLevel > levels.length) currentLevel = 1;
             document.querySelector('.level-info').textContent = `Level ${currentLevel} - Reach your colored doors!`;
             document.getElementById('winMessage').style.display = 'none';
-            levels[currentLevel - 1].buttons.forEach(btn => btn.pressed = false);
+            if (levels[currentLevel - 1].buttons) {
+                levels[currentLevel - 1].buttons.forEach(btn => btn.pressed = false);
+            }
             resetPlayers();
         }
 
+        // Start game
         resetPlayers();
         gameUpdate();
     </script>
