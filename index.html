@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Benix & Howen - Mobile Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 {
+            margin-top: 10px;
+            font-size: 1.5em;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+        }
+
+        .game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        #gameCanvas {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            background: #0f0f1e;
+            max-width: 100%;
+            max-height: 50vh;
+        }
+
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+
+        .control-pad {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .control-label {
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .benix-label { color: #ff6b6b; }
+        .howen-label { color: #4ecdc4; }
+
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(2, 60px);
+            gap: 5px;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.1s;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:active, .control-btn.active {
+            background: rgba(255,255,255,0.4);
+            transform: scale(0.95);
+            border-color: rgba(255,255,255,0.8);
+        }
+
+        .control-btn.up { grid-column: 2; }
+        .control-btn.left { grid-column: 1; grid-row: 2; }
+        .control-btn.right { grid-column: 3; grid-row: 2; }
+        .control-btn.down { grid-column: 2; grid-row: 2; }
+
+        .level-info {
+            margin-top: 5px;
+            font-size: 1em;
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        .instructions {
+            font-size: 0.8em;
+            opacity: 0.6;
+            margin-top: 5px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: popIn 0.5s ease-out;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            80% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .win-message h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #fff;
+            color: #764ba2;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .restart-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.2em; }
+            .d-pad {
+                grid-template-columns: repeat(3, 50px);
+                grid-template-rows: repeat(2, 50px);
+            }
+            .control-btn { font-size: 20px; }
+            #gameCanvas { max-height: 40vh; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <h1>🔥 BENIX & HOWEN 💧</h1>
+    
+    <div class="game-container">
+        <button class="restart-btn" onclick="restartLevel()">↻ Restart</button>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="level-info">Level 1 - Reach your colored doors!</div>
+        <div class="instructions">Benix (red) avoids lava • Howen (cyan) avoids water</div>
+
+        <div class="controls-container">
+            <!-- Benix Controls (Left side) -->
+            <div class="control-pad">
+                <div class="control-label benix-label">BENIX</div>
+                <div class="d-pad">
+                    <div class="control-btn up" data-player="benix" data-key="up">↑</div>
+                    <div class="control-btn left" data-player="benix" data-key="left">←</div>
+                    <div class="control-btn down" data-player="benix" data-key="down">↓</div>
+                    <div class="control-btn right" data-player="benix" data-key="right">→</div>
+                </div>
+            </div>
+
+            <!-- Howen Controls (Right side) -->
+            <div class="control-pad">
+                <div class="control-label howen-label">HOWEN</div>
+                <div class="d-pad">
+                    <div class="control-btn up" data-player="howen" data-key="up">↑</div>
+                    <div class="control-btn left" data-player="howen" data-key="left">←</div>
+                    <div class="control-btn down" data-player="howen" data-key="down">↓</div>
+                    <div class="control-btn right" data-player="howen" data-key="right">→</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="win-message" id="winMessage">
+        <h2>🎉 LEVEL COMPLETE! 🎉</h2>
+        <p>Great teamwork!</p>
+        <button onclick="nextLevel()">Next Level</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Handle canvas sizing for mobile
+        function resizeCanvas() {
+            const container = document.querySelector('.game-container');
+            const maxWidth = Math.min(window.innerWidth - 20, 800);
+            const scale = maxWidth / 800;
+            canvas.style.width = maxWidth + 'px';
+            canvas.style.height = (600 * scale) + 'px';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let currentLevel = 1;
+        let gameLoop;
+        let particles = [];
+        
+        const benix = {
+            x: 50, y: 500, width: 60, height: 30,
+            vx: 0, vy: 0, speed: 5, jumpPower: 12,
+            onGround: false, color: '#ff6b6b', glow: '#ff4757',
+            name: 'benix', reached: false
+        };
+
+        const howen = {
+            x: 100, y: 500, width: 60, height: 30,
+            vx: 0, vy: 0, speed: 5, jumpPower: 12,
+            onGround: false, color: '#4ecdc4', glow: '#00d2d3',
+            name: 'howen', reached: false
+        };
+
+        const gravity = 0.6;
+        const friction = 0.8;
+        const keys = {};
+
+        // Touch controls
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            const player = btn.dataset.player;
+            const key = btn.dataset.key;
+            
+            const startHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                btn.classList.add('active');
+                if (player === 'benix') {
+                    if (key === 'left') keys['a'] = true;
+                    if (key === 'right') keys['d'] = true;
+                    if (key === 'up') keys['w'] = true;
+                    if (key === 'down') keys['s'] = true;
+                } else {
+                    if (key === 'left') keys['arrowleft'] = true;
+                    if (key === 'right') keys['arrowright'] = true;
+                    if (key === 'up') keys['arrowup'] = true;
+                    if (key === 'down') keys['arrowdown'] = true;
+                }
+            };
+            
+            const endHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                btn.classList.remove('active');
+                if (player === 'benix') {
+                    if (key === 'left') keys['a'] = false;
+                    if (key === 'right') keys['d'] = false;
+                    if (key === 'up') keys['w'] = false;
+                    if (key === 'down') keys['s'] = false;
+                } else {
+                    if (key === 'left') keys['arrowleft'] = false;
+                    if (key === 'right') keys['arrowright'] = false;
+                    if (key === 'up') keys['arrowup'] = false;
+                    if (key === 'down') keys['arrowdown'] = false;
+                }
+            };
+            
+            btn.addEventListener('touchstart', startHandler, {passive: false});
+            btn.addEventListener('touchend', endHandler, {passive: false});
+            btn.addEventListener('mousedown', startHandler);
+            btn.addEventListener('mouseup', endHandler);
+            btn.addEventListener('mouseleave', endHandler);
+        });
+
+        // Keyboard controls (for desktop)
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        const levels = [
+            {
+                platforms: [
+                    { x: 0, y: 550, w: 800, h: 50 },
+                    { x: 200, y: 450, w: 150, h: 20 },
+                    { x: 450, y: 350, w: 150, h: 20 },
+                    { x: 650, y: 250, w: 150, h: 20 }
+                ],
+                hazards: [
+                    { x: 300, y: 530, w: 200, h: 20, type: 'lava', color: '#ff4757' }
+                ],
+                buttons: [],
+                doors: [
+                    { x: 700, y: 200, w: 50, h: 50, color: '#ff6b6b', player: 'benix' },
+                    { x: 760, y: 200, w: 50, h: 50, color: '#4ecdc4', player: 'howen' }
+                ],
+                walls: []
+            },
+            {
+                platforms: [
+                    { x: 0, y: 550, w: 800, h: 50 },
+                    { x: 150, y: 450, w: 100, h: 20 },
+                    { x: 350, y: 400, w: 100, h: 20 },
+                    { x: 550, y: 350, w: 100, h: 20 },
+                    { x: 0, y: 300, w: 200, h: 20 },
+                    { x: 600, y: 250, w: 200, h: 20 }
+                ],
+                hazards: [
+                    { x: 250, y: 530, w: 100, h: 20, type: 'lava', color: '#ff4757' },
+                    { x: 450, y: 530, w: 100, h: 20, type: 'water', color: '#00d2d3' }
+                ],
+                buttons: [
+                    { x: 50, y: 280, w: 40, h: 20, color: '#ffeaa7', pressed: false, id: 1 }
+                ],
+                doors: [
+                    { x: 650, y: 200, w: 50, h: 50, color: '#ff6b6b', player: 'benix', requires: 1 },
+                    { x: 710, y: 200, w: 50, h: 50, color: '#4ecdc4', player: 'howen', requires: 1 }
+                ],
+                walls: [
+                    { x: 580, y: 250, w: 20, h: 100, active: true, buttonId: 1 }
+                ]
+            },
+            {
+                platforms: [
+                    { x: 0, y: 550, w: 200, h: 50 },
+                    { x: 600, y: 550, w: 200, h: 50 },
+                    { x: 250, y: 450, w: 100, h: 20 },
+                    { x: 450, y: 450, w: 100, h: 20 },
+                    { x: 350, y: 300, w: 100, h: 20 }
+                ],
+                hazards: [
+                    { x: 200, y: 530, w: 400, h: 20, type: 'lava', color: '#ff4757' }
+                ],
+                buttons: [
+                    { x: 280, y: 430, w: 40, h: 20, color: '#ff6b6b', pressed: false, id: 1, playerOnly: 'benix' },
+                    { x: 480, y: 430, w: 40, h: 20, color: '#4ecdc4', pressed: false, id: 2, playerOnly: 'howen' }
+                ],
+                doors: [
+                    { x: 50, y: 100, w: 50, h: 50, color: '#ff6b6b', player: 'benix', requires: null },
+                    { x: 700, y: 100, w: 50, h: 50, color: '#4ecdc4', player: 'howen', requires: null }
+                ],
+                walls: [
+                    { x: 0, y: 150, w: 400, h: 20, active: true, buttonId: 1 },
+                    { x: 400, y: 150, w: 400, h: 20, active: true, buttonId: 2 }
+                ],
+                movingPlatforms: [
+                    { x: 350, y: 400, w: 100, h: 20, dx: 2, minX: 200, maxX: 500 }
+                ]
+            }
+        ];
+
+        function resetPlayers() {
+            benix.x = 50; benix.y = 500; benix.vx = 0; benix.vy = 0; benix.reached = false;
+            howen.x = 100; howen.y = 500; howen.vx = 0; howen.vy = 0; howen.reached = false;
+        }
+
+        function restartLevel() {
+            resetPlayers();
+            const level = levels[currentLevel - 1];
+            level.buttons.forEach(btn => btn.pressed = false);
+        }
+
+        function updatePlayer(player, otherKeys) {
+            if (keys[otherKeys.left]) player.vx = -player.speed;
+            else if (keys[otherKeys.right]) player.vx = player.speed;
+            else player.vx *= friction;
+
+            if (keys[otherKeys.up] && player.onGround) {
+                player.vy = -player.jumpPower;
+                player.onGround = false;
+                createParticles(player.x + player.width/2, player.y + player.height, player.color);
+            }
+
+            player.vy += gravity;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            if (player.y > canvas.height) {
+                player.x = player === benix ? 50 : 100;
+                player.y = 500;
+                player.vx = 0;
+                player.vy = 0;
+            }
+
+            player.onGround = false;
+            const level = levels[currentLevel - 1];
+            
+            [...level.platforms, ...(level.movingPlatforms || [])].forEach(plat => {
+                if (player.x < plat.x + plat.w &&
+                    player.x + player.width > plat.x &&
+                    player.y + player.height > plat.y &&
+                    player.y + player.height < plat.y + plat.h + 20 &&
+                    player.vy >= 0) {
+                    player.y = plat.y - player.height;
+                    player.vy = 0;
+                    player.onGround = true;
+                    if (plat.dx) player.x += plat.dx;
+                }
+            });
+
+            level.walls.forEach(wall => {
+                if (!wall.active) return;
+                if (player.x < wall.x + wall.w &&
+                    player.x + player.width > wall.x &&
+                    player.y + player.height > wall.y &&
+                    player.y < wall.y + wall.h) {
+                    if (player.vx > 0) player.x = wall.x - player.width;
+                    else if (player.vx < 0) player.x = wall.x + wall.w;
+                    player.vx = 0;
+                }
+            });
+
+            level.hazards.forEach(hazard => {
+                if (player.x + 10 < hazard.x + hazard.w &&
+                    player.x + player.width - 10 > hazard.x &&
+                    player.y + 10 < hazard.y + hazard.h &&
+                    player.y + player.height - 10 > hazard.y) {
+                    if ((hazard.type === 'lava' && player === howen) ||
+                        (hazard.type === 'water' && player === benix)) {
+                        player.x = player === benix ? 50 : 100;
+                        player.y = 500;
+                        player.vx = 0;
+                        player.vy = 0;
+                        createParticles(player.x, player.y, '#ffffff', 10);
+                    }
+                }
+            });
+
+            level.buttons.forEach(btn => {
+                const wasPressed = btn.pressed;
+                btn.pressed = false;
+                [benix, howen].forEach(p => {
+                    if (p.x + p.width > btn.x && p.x < btn.x + btn.w &&
+                        p.y + p.height > btn.y && p.y < btn.y + btn.h) {
+                        if (!btn.playerOnly || btn.playerOnly === p.name) {
+                            btn.pressed = true;
+                        }
+                    }
+                });
+                if (btn.pressed && !wasPressed) {
+                    createParticles(btn.x + btn.w/2, btn.y, btn.color, 5);
+                }
+            });
+
+            level.walls.forEach(wall => {
+                if (wall.buttonId) {
+                    const btn = level.buttons.find(b => b.id === wall.buttonId);
+                    wall.active = !btn.pressed;
+                }
+            });
+
+            level.doors.forEach(door => {
+                if (door.requires) {
+                    const btn = level.buttons.find(b => b.id === door.requires);
+                    if (!btn || !btn.pressed) return;
+                }
+                if (player.name === door.player &&
+                    player.x + player.width/2 > door.x &&
+                    player.x + player.width/2 < door.x + door.w &&
+                    player.y + player.height/2 > door.y &&
+                    player.y + player.height/2 < door.y + door.h) {
+                    player.reached = true;
+                }
+            });
+        }
+
+        function updateMovingPlatforms() {
+            const level = levels[currentLevel - 1];
+            if (level.movingPlatforms) {
+                level.movingPlatforms.forEach(plat => {
+                    plat.x += plat.dx;
+                    if (plat.x <= plat.minX || plat.x >= plat.maxX) plat.dx *= -1;
+                });
+            }
+        }
+
+        function createParticles(x, y, color, count = 5) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 30,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                p.vy += 0.1;
+                return p.life > 0;
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0f0f1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const level = levels[currentLevel - 1];
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            level.hazards.forEach(hazard => {
+                ctx.fillStyle = hazard.color;
+                ctx.globalAlpha = 0.6;
+                ctx.fillRect(hazard.x, hazard.y, hazard.w, hazard.h);
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                const offset = Date.now() / 200;
+                for (let i = 0; i < hazard.w; i += 20) {
+                    const waveY = Math.sin((i + offset * 50) / 50) * 3;
+                    ctx.fillRect(hazard.x + i, hazard.y + waveY, 10, 3);
+                }
+            });
+
+            ctx.fillStyle = '#2d3436';
+            level.platforms.forEach(plat => {
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                ctx.fillStyle = '#636e72';
+                ctx.fillRect(plat.x, plat.y, plat.w, 5);
+                ctx.fillStyle = '#2d3436';
+            });
+
+            if (level.movingPlatforms) {
+                level.movingPlatforms.forEach(plat => {
+                    ctx.fillStyle = '#74b9ff';
+                    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                    ctx.fillStyle = '#0984e3';
+                    ctx.fillRect(plat.x, plat.y, plat.w, 5);
+                    ctx.fillStyle = '#2d3436';
+                });
+            }
+
+            level.walls.forEach(wall => {
+                if (wall.active) {
+                    ctx.fillStyle = '#b2bec3';
+                    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                    ctx.fillStyle = '#636e72';
+                    for (let i = 0; i < wall.h; i += 20) {
+                        ctx.fillRect(wall.x, wall.y + i, wall.w, 2);
+                    }
+                }
+            });
+
+            level.buttons.forEach(btn => {
+                ctx.fillStyle = btn.pressed ? '#00b894' : btn.color;
+                ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(btn.x + 5, btn.y + 5, btn.w - 10, btn.h - 10);
+            });
+
+            level.doors.forEach(door => {
+                const isOpen = !door.requires || level.buttons.find(b => b.id === door.requires)?.pressed;
+                if (isOpen) ctx.globalAlpha = 0.5;
+                ctx.fillStyle = door.color;
+                ctx.fillRect(door.x, door.y, door.w, door.h);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(door.x, door.y, door.w, door.h);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(door.player.toUpperCase(), door.x + door.w/2, door.y + door.h/2 + 4);
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = 1;
+            });
+
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 30;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            [benix, howen].forEach(player => {
+                const gradient = ctx.createRadialGradient(
+                    player.x + player.width/2, player.y + player.height/2, 0,
+                    player.x + player.width/2, player.y + player.height/2, 40
+                );
+                gradient.addColorStop(0, player.glow);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                ctx.fillStyle = player.color;
+                ctx.fillRect(player.x - 2, player.y - 2, player.width + 4, player.height + 4);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(player.name, player.x + player.width/2, player.y + player.height/2);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(player.x, player.y, player.width, player.height);
+            });
+
+            if (benix.reached && howen.reached) {
+                document.getElementById('winMessage').style.display = 'block';
+            }
+        }
+
+        function gameUpdate() {
+            updatePlayer(benix, { left: 'a', right: 'd', up: 'w', down: 's' });
+            updatePlayer(howen, { left: 'arrowleft', right: 'arrowright', up: 'arrowup', down: 'arrowdown' });
+            updateMovingPlatforms();
+            updateParticles();
+            draw();
+            gameLoop = requestAnimationFrame(gameUpdate);
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel > levels.length) currentLevel = 1;
+            document.querySelector('.level-info').textContent = `Level ${currentLevel} - Reach your colored doors!`;
+            document.getElementById('winMessage').style.display = 'none';
+            levels[currentLevel - 1].buttons.forEach(btn => btn.pressed = false);
+            resetPlayers();
+        }
+
+        resetPlayers();
+        gameUpdate();
+    </script>
+</body>
+</html>
